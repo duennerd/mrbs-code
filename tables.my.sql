@@ -143,6 +143,7 @@ CREATE TABLE mrbs_entry
   create_by                   varchar(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' NOT NULL,
   modified_by                 varchar(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' NOT NULL,
   name                        varchar(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' NOT NULL,
+  contact                     varchar(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' NOT NULL,
   type                        char DEFAULT 'E' NOT NULL,
   description                 text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   status                      tinyint unsigned NOT NULL DEFAULT 0,

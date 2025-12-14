@@ -152,6 +152,7 @@ CREATE TABLE mrbs_entry
   create_by                   varchar(80) DEFAULT '' NOT NULL,
   modified_by                 varchar(80) DEFAULT '' NOT NULL,
   name                        varchar(80) DEFAULT '' NOT NULL,
+  contact                     varchar(80) DEFAULT '' NOT NULL,
   type                        char DEFAULT 'E' NOT NULL,
   description                 text,
   status                      smallint DEFAULT 0 NOT NULL,
