@@ -732,11 +732,13 @@ $area = mrbsGetRoomArea($room);
 // Now construct the new query string
 $vars = array('view'      => $view ?? $default_view,
               'view_all'  => $view_all ?? $default_view_all,
-              'year'      => $year,
-              'month'     => $month,
-              'day'       => $day,
-              'area'      => $area,
-              'room'      => $room);
+              'page_date' => format_iso_date($year, $month, $day));
+
+// ANGEPASST: Wenn $show_area_select = false, dann keine area/room Parameter hinzufügen
+if (!isset($show_area_select) || $show_area_select !== false) {
+  $vars['area'] = $area;
+  $vars['room'] = $room;
+}
 
 $returl .= '?' . http_build_query($vars, '', '&');
 

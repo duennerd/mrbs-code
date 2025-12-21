@@ -521,10 +521,23 @@ function day_table_innerhtml(string $view, int $year, int $month, int $day, int 
   global $enable_periods;
   global $times_along_top, $row_labels_both_sides, $column_labels_both_ends;
   global $resolution, $morningstarts, $morningstarts_minutes;
+  global $show_area_select;
 
   if ($kiosk === 'room')
   {
     $rooms = array(get_room_details($room_id));
+  }
+  // ANGEPASST: Wenn $show_area_select = false, dann alle Räume aus allen Bereichen laden
+  elseif (isset($show_area_select) && $show_area_select === false) {
+    $sql = "SELECT R.*
+            FROM " . _tbl('room') . " R
+            JOIN " . _tbl('area') . " A ON R.area_id = A.id
+            WHERE A.show_in_main_view = 1
+            AND A.disabled = 0
+            AND R.disabled = 0
+            ORDER BY A.sort_key, A.area_name, R.sort_key, R.room_name";
+    $res = db()->query($sql);
+    $rooms = $res->all_rows_keyed();
   }
   else
   {
@@ -566,7 +579,53 @@ function day_table_innerhtml(string $view, int $year, int $month, int $day, int 
   // saves us bothering to do the detailed calculations of which slots are invalid.
   $is_possibly_invalid = !$enable_periods && is_possibly_invalid($start_first_slot, $start_last_slot);
 
-  $entries = get_entries_by_area($area_id, $start_first_slot, $start_last_slot + $resolution);
+  // ANGEPASST: Wenn $show_area_select = false, dann Einträge aus ALLEN Bereichen mit show_in_main_view=1 laden
+  if (isset($show_area_select) && $show_area_select === false) {
+    // Lade Einträge aus allen Bereichen mit show_in_main_view=1
+    // Optimiert: Erst die Räume aus den ausgewählten Bereichen laden, dann nur deren Einträge
+    $interval_start = $start_first_slot;
+    $interval_end = $start_last_slot + $resolution;
+
+    // Erst die room_ids aus den ausgewählten Bereichen holen
+    $sql_rooms = "SELECT R.id
+                  FROM " . _tbl('room') . " R
+                  JOIN " . _tbl('area') . " A ON R.area_id = A.id
+                  WHERE A.show_in_main_view = 1
+                    AND A.disabled = 0
+                    AND R.disabled = 0";
+    $res_rooms = db()->query($sql_rooms);
+    $room_ids = array();
+    while ($row = $res_rooms->next_row_keyed()) {
+      $room_ids[] = $row['id'];
+    }
+
+    if (empty($room_ids)) {
+      $entries = array();
+    } else {
+      // Jetzt die Einträge für diese Räume laden (viel effizienter mit IN clause und Index)
+      $placeholders = implode(',', array_fill(0, count($room_ids), '?'));
+      $sql = "SELECT E.*, COUNT(P.entry_id) AS n_registered
+              FROM " . _tbl('entry') . " E
+         LEFT JOIN " . _tbl('participants') . " P ON P.entry_id = E.id
+             WHERE E.room_id IN ($placeholders)
+               AND start_time < ? AND end_time > ?
+          GROUP BY E.id
+          ORDER BY start_time, E.id";
+
+      $params = array_merge($room_ids, array($interval_end, $interval_start));
+      $res = db()->query($sql, $params);
+      $entries = $res->all_rows_keyed();
+
+      foreach ($entries as &$row)
+      {
+        unpack_status($row);
+      }
+      unset($row);
+    }
+  } else {
+    // Standard-Verhalten: Nur Einträge aus dem ausgewählten Bereich laden
+    $entries = get_entries_by_area($area_id, $start_first_slot, $start_last_slot + $resolution);
+  }
 
   // We want to build a map containing all the data we want to show
   // and then spit it out.
@@ -915,6 +974,7 @@ function multiday_view_all_rooms_innerhtml(string $view, int $view_all, int $yea
   global $row_labels_both_sides, $column_labels_both_ends;
   global $weekstarts;
   global $resolution, $morningstarts, $morningstarts_minutes;
+  global $show_area_select;
 
   // It's theoretically possible to display a transposed table with rooms along the top and days
   // down the side.  However it doesn't seem a very useful display and so hasn't yet been implemented.
@@ -931,7 +991,20 @@ function multiday_view_all_rooms_innerhtml(string $view, int $view_all, int $yea
   // case people want a transposed view in future.
   $days_along_top = true;
 
-  $rooms = get_rooms($area_id);
+  // ANGEPASST: Nur Räume aus Bereichen laden, die show_in_main_view=1 haben
+  if (isset($show_area_select) && $show_area_select === false) {
+    $sql = "SELECT R.*
+            FROM " . _tbl('room') . " R
+            JOIN " . _tbl('area') . " A ON R.area_id = A.id
+            WHERE A.show_in_main_view = 1
+            AND A.disabled = 0
+            AND R.disabled = 0
+            ORDER BY A.sort_key, A.area_name, R.sort_key, R.room_name";
+    $res = db()->query($sql);
+    $rooms = $res->all_rows_keyed();
+  } else {
+    $rooms = get_rooms($area_id);
+  }
   $n_rooms = count($rooms);
 
   // Check to see whether there are any rooms in the area
@@ -971,9 +1044,55 @@ function multiday_view_all_rooms_innerhtml(string $view, int $view_all, int $yea
 
   // Get the data.  It's much quicker to do a single SQL query getting all the
   // entries for the interval in one go, rather than doing a query for each day.
-  $entries = get_entries_by_area($area_id,
-                                 get_start_first_slot($month, $day_start_interval, $year),
-                                 get_end_last_slot($month, $day_start_interval + $n_days-1, $year));
+  // ANGEPASST: Wenn $show_area_select = false, dann Einträge aus ALLEN Bereichen mit show_in_main_view=1 laden
+  if (isset($show_area_select) && $show_area_select === false) {
+    // Lade Einträge aus allen Bereichen mit show_in_main_view=1
+    // Optimiert: Erst die Räume aus den ausgewählten Bereichen laden, dann nur deren Einträge
+    $interval_start = get_start_first_slot($month, $day_start_interval, $year);
+    $interval_end = get_end_last_slot($month, $day_start_interval + $n_days-1, $year);
+
+    // Erst die room_ids aus den ausgewählten Bereichen holen
+    $sql_rooms = "SELECT R.id
+                  FROM " . _tbl('room') . " R
+                  JOIN " . _tbl('area') . " A ON R.area_id = A.id
+                  WHERE A.show_in_main_view = 1
+                    AND A.disabled = 0
+                    AND R.disabled = 0";
+    $res_rooms = db()->query($sql_rooms);
+    $room_ids = array();
+    while ($row = $res_rooms->next_row_keyed()) {
+      $room_ids[] = $row['id'];
+    }
+
+    if (empty($room_ids)) {
+      $entries = array();
+    } else {
+      // Jetzt die Einträge für diese Räume laden (viel effizienter mit IN clause und Index)
+      $placeholders = implode(',', array_fill(0, count($room_ids), '?'));
+      $sql = "SELECT E.*, COUNT(P.entry_id) AS n_registered
+              FROM " . _tbl('entry') . " E
+         LEFT JOIN " . _tbl('participants') . " P ON P.entry_id = E.id
+             WHERE E.room_id IN ($placeholders)
+               AND start_time < ? AND end_time > ?
+          GROUP BY E.id
+          ORDER BY start_time, E.id";
+
+      $params = array_merge($room_ids, array($interval_end, $interval_start));
+      $res = db()->query($sql, $params);
+      $entries = $res->all_rows_keyed();
+
+      foreach ($entries as &$row)
+      {
+        unpack_status($row);
+      }
+      unset($row);
+    }
+  } else {
+    // Standard-Verhalten: Nur Einträge aus dem ausgewählten Bereich laden
+    $entries = get_entries_by_area($area_id,
+                                   get_start_first_slot($month, $day_start_interval, $year),
+                                   get_end_last_slot($month, $day_start_interval + $n_days-1, $year));
+  }
 
   // We want to build an array containing all the data we want to show and then spit it out.
   $map = new Map($resolution);

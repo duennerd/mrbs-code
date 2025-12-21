@@ -182,6 +182,15 @@ function get_fieldset_general(array $data)
         ->setControlChecked($data['times_along_top']);
   $fieldset->addElement($field);
 
+  // Show in main view - whether to show this area in the main view
+  $field = new FieldInputCheckbox();
+  $field->setLabel('In Hauptansicht anzeigen')
+        ->setLabelAttributes(array('title' => 'Wenn aktiviert, werden die Räume dieses Bereichs in der Hauptansicht angezeigt'))
+        ->setControlAttributes(array('id' => 'show_in_main_view',
+                                      'name' => 'show_in_main_view'))
+        ->setChecked(!empty($data['show_in_main_view']));
+  $fieldset->addElement($field);
+
   return $fieldset;
 }
 

@@ -52,6 +52,7 @@ $form_vars = array(
   'area_confirmed_default'        => 'string',
   'area_default_type'             => 'string',
   'area_times_along_top'          => 'string',
+  'show_in_main_view'             => 'string',
   'custom_html'                   => 'string'
 );
 
@@ -172,7 +173,8 @@ else
       'area_enable_periods',
       'area_confirmation_enabled',
       'area_confirmed_default',
-      'area_times_along_top'
+      'area_times_along_top',
+      'show_in_main_view'
     );
 
   foreach ($interval_types as $interval_type)
@@ -376,6 +378,8 @@ $assign_array[] = "default_type=?";
 $sql_params[] = $area_default_type;
 $assign_array[] = "times_along_top=?";
 $sql_params[] = $area_times_along_top;
+$assign_array[] = "show_in_main_view=?";
+$sql_params[] = $show_in_main_view;
 
 $sql .= implode(",", $assign_array) . " WHERE id=?";
 $sql_params[] = $area;

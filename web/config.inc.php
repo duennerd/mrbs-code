@@ -64,7 +64,7 @@ $db_database = "qwv_reservation";
 // Database login user name:
 $db_login = "reservation";
 // Database login password:
-$db_password = 'dummy-password';
+$db_password = 'root';
 // Prefix for table names.  This will allow multiple installations where only
 // one database is available
 $db_tbl_prefix = "mrbs_";
@@ -109,5 +109,9 @@ $edit_entry_field_order = ["name", "contact"];
 $vocab_override['de']['entry.contact'] = "Kontaktangabe (Emailadresse oder Telefon)";
 $is_mandatory_field['entry.contact'] = true;
 $is_private_field['entry.contact'] = true;
+
+// Area-Dropdown verstecken und alle markierten Bereiche in einer Ansicht anzeigen
+$show_area_select = false;
+$default_view_all = true;  // Standardmäßig alle Räume anzeigen
 
 

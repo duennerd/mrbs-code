@@ -633,16 +633,30 @@ function print_theme_header($context = null, $simple = false, $omit_login = fals
 
 function build_query($context)
 {
+  global $show_area_select, $default_view_all;
+
   $vars = array(
     'view'  => $context['view'],
     'page_date' => format_iso_date($context['year'], $context['month'], $context['day'])
   );
 
-  if (!empty($context['area'])) {
-    $vars['area'] = $context['area'];
+  // ANGEPASST: Wenn $show_area_select = false, dann keine area/room Parameter hinzufügen
+  // damit alle Bereiche angezeigt werden
+  if (isset($show_area_select) && $show_area_select === false) {
+    // Wenn wir alle Bereiche anzeigen, dann view_all=1 setzen
+    if (isset($default_view_all) && $default_view_all) {
+      $vars['view_all'] = 1;
+    }
+    // KEINE area/room Parameter hinzufügen
+  } else {
+    // Standard-Verhalten: area und room hinzufügen
+    if (!empty($context['area'])) {
+      $vars['area'] = $context['area'];
+    }
+    if (!empty($context['room'])) {
+      $vars['room'] = $context['room'];
+    }
   }
-  if (!empty($context['room'])) {
-    $vars['room'] = $context['room'];
-  }
+
   return http_build_query($vars, '', '&');
 }

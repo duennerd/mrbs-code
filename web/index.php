@@ -38,7 +38,7 @@ function get_color_key() : string
 // displayed.
 function make_area_select_html(string $view, int $year, int $month, int $day, int $current) : string
 {
-  global $multisite, $site;
+  global $multisite, $site, $show_area_select;
 
   $out_html = '';
 
@@ -46,7 +46,8 @@ function make_area_select_html(string $view, int $year, int $month, int $day, in
 
   // Only show the areas if there are more than one of them, otherwise
   // there's no point
-  if (count($areas) > 1)
+  // ANGEPASST: Prüfen ob $show_area_select gesetzt ist
+  if ((count($areas) > 1) && (!isset($show_area_select) || $show_area_select !== false))
   {
     $page_date = format_iso_date($year, $month, $day);
 
@@ -229,6 +230,8 @@ function get_location_nav(string $view, int $view_all, int $year, int $month, in
 
 function get_view_nav(string $current_view, int $view_all, int $year, int $month, int $day, int $area, int $room) : string
 {
+  global $show_area_select;
+
   $html = '';
 
   $html .= '<nav class="view">';
@@ -244,9 +247,13 @@ function get_view_nav(string $current_view, int $view_all, int $year, int $month
 
     $vars = array('view'      => $view,
                   'view_all'  => $this_view_all,
-                  'page_date' => format_iso_date($year, $month, $day),
-                  'area'      => $area,
-                  'room'      => $room);
+                  'page_date' => format_iso_date($year, $month, $day));
+
+    // ANGEPASST: Wenn $show_area_select = false, dann keine area/room Parameter hinzufügen
+    if (!isset($show_area_select) || $show_area_select !== false) {
+      $vars['area'] = $area;
+      $vars['room'] = $room;
+    }
 
     $query = http_build_query($vars, '', '&');
     $href = multisite("index.php?$query");
